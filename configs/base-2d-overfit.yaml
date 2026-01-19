@@ -1,0 +1,172 @@
+mode: overfit
+stage: s2_checkerboard
+output: ./outputs/
+seed: 0
+workers: 4
+pin_mem: true
+
+# Data settings
+data:
+  dataset_dir: ~/data/VideoCompression/evaluation/YUV/UVG/1920x1080/
+  dataset: Jockey_1920x1080_120fps_420_8bit_YUV
+  fmt: yuv420p
+  yuv_fmt: yuv420p
+  yuv_size: [600, 1080, 1920]  # [T, H, W]
+  video_size: [-1, -1, -1]      # padding
+  patch_size: [1, 120, 120]     # 2D patch: T=1
+
+# Training settings
+train:
+  epochs: 360
+  eval_epochs: 30   
+  warmup_epochs: 3          
+  rate_steps: 8
+  grad_accum: 1
+  train_batch_size: 144          
+  eval_batch_size: 1
+  train_patch_size: [1, 120, 120]   # 2D patch
+  eval_patch_size: [1, -1, -1]      # Full spatial, T=1
+  
+  # Optimizer
+  opt: adam
+  lr: 2e-3                  
+  warmup_lr: 5e-4            
+  min_lr: 1e-4               
+  auto_lr_scaling: false
+  max_norm: 1.0
+  weight_decay: 0
+  weight_decay_scaling: true
+  opt_eps: 1e-8
+  opt_betas: [0.9, 0.999]
+  
+  # Scheduler
+  sched: cosine
+
+# Video coding settings
+start_frame: 0
+num_frames: 32      
+intra_period: -1
+
+# Task settings
+task:
+  loss: [1.0, l1-yuv611]
+  metric: [psnr-yuv611, ms-ssim-y]
+  color_space: YUV
+  lamb: 128.0
+  target_bpp: 0.5
+  bpp_penalty_weight: 1000.0
+
+# Train task
+train_task:
+  loss: [1.0, l1-yuv611]
+  metric: [psnr-yuv611]
+
+# Model settings
+model:
+  type: HiNeRV
+  size: m
+  config:
+    base_encoding:
+      base_grid_type: v2                 
+      base_grid_size: [8, 45, 80, 4]      
+      base_grid_level: 4                  
+      base_grid_level_scale: [2.0, 2.0, 2.0, 0.5]  
+      base_kernel: [3, 3, 3]
+    
+    decoder:
+      local_grid_size: [-1, 16]
+      local_grid_level: 3
+      
+      channels: [512, 256, 128, 64]       
+      depths: [3, 3, 3, 1]                
+      exps: [4.0, 4.0, 4.0, 4.0]
+      kernels: [3, 3, 3, 3]
+      scales_t: [1, 1, 1, 1]              
+      scales_hw: [3, 2, 2, 2]
+      paddings: [-1, -1, -1]
+
+# Compression model
+compress_model:
+  type: ISCAS26
+  config:
+    # Grid entropy model - checkerboard
+    grid_em:
+      em: checkerboard
+      em_dist: gaussian
+      rate_quant: soft-round-noise
+      dist_quant: soft-round-noise
+      quant_mean: true
+      learned_quant: true
+      learned_em: true
+      channels: 32
+      depth: 2
+      kernel_size: 5
+      norm: none
+      bias: true
+      act: gelu
+      depthwise: true
+    
+    # Weight entropy model - dual-axis
+    weight_em:
+      em: d-axis
+      em_dist: gaussian
+      rate_quant: soft-round-noise
+      dist_quant: soft-round-noise
+      quant_mean: true
+      learned_quant: true
+      learned_em: true
+    
+    # Grid meta entropy model
+    grid_meta_em:
+      em: em
+      em_dist: gaussian
+      rate_quant: soft-round-noise
+      dist_quant: soft-round-noise
+      quant_mean: true
+      learned_quant: true
+      learned_em: true
+    
+    # Weight meta entropy model
+    weight_meta_em:
+      em: em
+      em_dist: gaussian
+      rate_quant: soft-round-noise
+      dist_quant: soft-round-noise
+      quant_mean: true
+      learned_quant: true
+      learned_em: true
+    
+    # Optimization settings
+    optimize:
+      optimize_rate: true
+      soft_round_temp: [0.5, 0.3]
+      kum_noise: [2.0, 1.0]
+    
+    # Encoder
+    encoder:
+      type: convnext
+      in_channels: 3
+      num_levels: 5
+      channels: [112, 56, 28, 14, 60]     
+      depth_per_level: 3
+      temporal_strides: [1, 1, 1, 1, 1]
+      spatial_strides: [3, 2, 2, 2, 1]
+      grid_align_corners: false
+      hidden_mult: 4
+      train_encoder: false
+      use_param_grids: true
+      init_grids_from_encoder: false  
+    
+    debug: false
+
+# Logging
+logging:
+  log_epochs: -2
+  log_level: info
+  train_enable_log: false
+  eval_enable_log: true
+
+# Resume
+resume:
+  path: null
+  model_only: false

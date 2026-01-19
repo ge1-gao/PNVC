@@ -1,0 +1,6 @@
+[submodule "submodules/fla"]
+	path = submodules/fla
+	url = git@github.com:fla-org/flash-linear-attention.git
+[submodule "submodules/NVRC"]
+	path = submodules/NVRC
+	url = git@github.com:hmkx/NVRC.git

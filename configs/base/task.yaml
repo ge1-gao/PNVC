@@ -1,0 +1,30 @@
+# base task configurations
+
+# training task with 5x5 ms-ssim kernel (faster)
+train:
+  loss: [0.7, l1, 0.3, ms-ssim-5x5]
+  metric: [psnr, ms-ssim-5x5]
+  color_space: RGB
+  lamb: 1.0
+
+# evaluation task with standard ms-ssim
+eval:
+  loss: [0.7, l1, 0.3, ms-ssim]
+  metric: [psnr, ms-ssim]
+  color_space: RGB
+  lamb: 1.0
+
+# alternative: pure l1 loss
+l1_only:
+  loss: [1.0, l1]
+  metric: [psnr, ms-ssim]
+  color_space: RGB
+  lamb: 1.0
+
+# alternative: pure mse loss
+mse_only:
+  loss: [1.0, mse]
+  metric: [psnr, ms-ssim]
+  color_space: RGB
+  lamb: 1.0
+

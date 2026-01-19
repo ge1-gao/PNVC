@@ -1,0 +1,175 @@
+mode: pretrain
+stage: pretrain_s3
+output: ./outputs/
+seed: 0
+workers: 32
+pin_mem: true
+
+# ----------------------------------------------------------------
+data:
+  fmt: png
+  video_size: [-1, -1, -1]
+  patch_size: [4, 216, 384]
+  
+  # Multiple data sources for pretrain
+  sources:
+    - base_dir: /projects/b5aw/data/VideoCompression/training/Vimeo/vimeo_septuplet/sequences/
+      video_list: /projects/b5aw/data/VideoCompression/training/Vimeo/vimeo_septuplet/sep_trainlist.txt
+      samples_per_video: 1          
+    
+    # - base_dir: /projects/b5aw/data/VideoCompression/training/PNG
+    #   scan_subdirs: true
+    #   samples_per_video: 8         
+
+# Training settings
+train:
+  epochs: 300
+  eval_epochs: 20
+  warmup_epochs: 5
+  rate_steps: 4
+  grad_accum: 1
+  train_batch_size: 20    
+  eval_batch_size: 1
+  train_patch_size: [4, 216, 384]
+  eval_patch_size: [1, -1, -1]
+  
+  # Optimizer
+  opt: adam
+  lr: 5e-4
+  warmup_lr: 5e-5
+  min_lr: 1e-5
+  auto_lr_scaling: false
+  max_norm: 1.0
+  weight_decay: 0
+  weight_decay_scaling: true
+  opt_eps: 1e-8
+  opt_betas: [0.9, 0.999]
+  
+  # Scheduler
+  sched: cosine
+
+# Video coding settings
+start_frame: 0
+num_frames: 4     
+intra_period: -1
+
+# Task settings
+task:
+  loss: [1.0, l1]                     # RGB L1 loss for PNG/RGB pretrain data
+  metric: [psnr]                      # RGB PSNR metric
+  color_space: RGB                    # Pretrain uses RGB (PNG images)
+  lamb: 128.0
+  # Weight rate lambda: scale factor for decoder weight rate in total loss
+  # Weight rate is computed as bits-per-weight (not BPP) and scaled by this factor
+  weight_rate_lambda: 0.004
+
+model:
+  type: HiNeRV
+  size: m
+  config:
+    base_encoding:
+      base_grid_type: v2
+      base_grid_size: [8, 9, 16, 4]      
+      base_grid_level: 4
+      base_grid_level_scale: [2.0, 2.0, 2.0, 0.5]  
+      base_kernel: [3, 3, 3]
+    
+    decoder:
+      local_grid_size: [-1, 16]
+      local_grid_level: 3
+      
+      channels: [512, 256, 128, 64]
+      depths: [3, 3, 3, 1]                
+      exps: [4.0, 4.0, 4.0, 4.0]
+      kernels: [3, 3, 3, 3]
+      scales_t: [1, 1, 1, 1]              
+      scales_hw: [3, 2, 2, 2]
+      paddings: [-1, -1, -1]
+
+# Compression model
+compress_model:
+  type: ISCAS26
+  config:
+    # Grid entropy model - checkerboard
+    grid_em:
+      em_dist: gaussian
+      quant_mean: true
+      learned_quant: true
+      learned_em: true
+      em: checkerboard
+      rate_quant: uniform-noise
+      dist_quant: ste
+      channels: 32                  # context network channels
+      depth: 2                      # context network depth
+      kernel_size: 5
+      norm: none
+      bias: true
+      act: gelu
+      depthwise: true
+    
+    # Weight entropy model - dual-axis
+    weight_em:
+      em_dist: gaussian
+      quant_mean: true
+      learned_quant: true
+      learned_em: true
+      em: d-axis
+      rate_quant: uniform-noise
+      dist_quant: ste
+      blk_size: [16, 32]
+      per_blk: true
+      per_axis: true
+    
+    # Grid meta entropy model
+    grid_meta_em:
+      em_dist: gaussian
+      quant_mean: true
+      learned_quant: true
+      learned_em: true
+      em: em
+      rate_quant: uniform-noise
+      dist_quant: ste
+    
+    # Weight meta entropy model
+    weight_meta_em:
+      em_dist: gaussian
+      quant_mean: true
+      learned_quant: true
+      learned_em: true
+      em: em
+      rate_quant: uniform-noise
+      dist_quant: ste
+    
+    # Optimization settings
+    optimize:
+      optimize_rate: true           # Enable rate optimization
+      quant_noise: [0.5, 1.0]       
+    
+    # Encoder - 2D (no temporal downsampling)
+    encoder:
+      type: convnext
+      in_channels: 3
+      num_levels: 5
+      channels: [112, 56, 28, 14, 60]     
+      depth_per_level: 5                   
+      temporal_strides: [1, 1, 1, 1, 1]   # No temporal downsampling (2D)
+      spatial_strides: [3, 2, 2, 2, 1]
+      grid_align_corners: false
+      hidden_mult: 6                       
+      train_encoder: true                  # train encoder
+      use_param_grids: false               # no param grids
+      init_grids_from_encoder: false       # don't init from encoder
+    
+    debug: false
+
+# Logging
+logging:
+  log_epochs: -2
+  log_level: info
+  train_enable_log: false
+  eval_enable_log: false
+
+# Resume
+resume:
+  path: null
+  model_only: false

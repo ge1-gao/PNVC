@@ -1,0 +1,15 @@
+data:
+  dataset_dir: ~/data/VideoCompression/evaluation/YUV/UVG/1920x1080
+  dataset: Beauty_1920x1080_120fps_420_8bit_YUV
+  fmt: yuv420p
+  yuv_fmt: yuv420p
+  yuv_size: [600, 1080, 1920]
+
+model:
+  size: m
+
+train:
+  stage: s1
+  train_patch_size: [4, 120, 120]
+  eval_patch_size: [4, -1, -1]
+  rate_steps: 1

@@ -1,0 +1,12 @@
+data:
+  dataset_dir: ~/data/VideoCompression/evaluation/PNG/BT.601/UVG/1920x1080
+  fmt: png
+
+# use hinerv-v2 l size by default
+model:
+  size: l
+
+# default to stage 1 training
+train:
+  stage: s1
+

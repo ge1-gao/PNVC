@@ -1,0 +1,15 @@
+# base data configuration
+uvg:
+  dataset_dir: ~/Datasets/UVG/1920x1080
+  dataset: Beauty
+  video_size: [-1, -1, -1]
+  patch_size: [1, -1, -1]
+  fmt: png
+
+mcl_jcv:
+  dataset_dir: ~/Datasets/MCL-JCV/1920x1080
+  dataset: videoSRC01
+  video_size: [-1, -1, -1]
+  patch_size: [1, -1, -1]
+  fmt: png
+

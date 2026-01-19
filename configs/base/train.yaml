@@ -1,0 +1,35 @@
+# base training configurations
+
+# stage 1 - main training
+s1:
+  epochs: 360
+  eval_epochs: 30
+  warmup_epochs: 3
+  rate_steps: 1
+  log_epochs: -2
+  opt: adam
+  sched: cosine
+  lr: 2e-3
+  warmup_lr: 1e-5
+  min_lr: 1e-4
+  max_norm: 1.0
+  weight_decay: 1e-6
+  weight_decay_scaling: true
+  auto_lr_scaling: true
+
+# stage 2 - fine-tuning
+s2:
+  epochs: 30
+  eval_epochs: 2
+  warmup_epochs: 5
+  rate_steps: 1
+  log_epochs: -2
+  opt: adam
+  sched: cosine
+  lr: 1e-4
+  warmup_lr: 1e-5
+  min_lr: 1e-5
+  max_norm: 1.0
+  weight_decay: 0.
+  weight_decay_scaling: true
+  auto_lr_scaling: true
